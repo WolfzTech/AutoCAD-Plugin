@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using Document = Autodesk.AutoCAD.ApplicationServices.Document;
 
-// This line is not mandatory, but improves loading performances
+//This line is not mandatory, but improves loading performances
 [assembly: CommandClass(typeof(AutoCAD_CSharp_plug_in.MyCommands))]
 
 namespace AutoCAD_CSharp_plug_in
