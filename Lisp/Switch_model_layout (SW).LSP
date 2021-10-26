@@ -1,0 +1,16 @@
+(defun C:SW ()
+  (setvar "cmdecho" 0)
+  (setq tilemode_old (getvar "TILEMODE"))
+  (if (= tilemode_old 0)
+    (progn
+      (setvar "TILEMODE" 1)
+      (setvar "PSLTSCALE" 0)
+      )
+    (progn
+      (setvar "TILEMODE" 0)
+      (setvar "PSLTSCALE" 0)
+      )
+    )
+  (command "REGENALL")
+  (princ)
+  )

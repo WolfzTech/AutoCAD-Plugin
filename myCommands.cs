@@ -275,6 +275,183 @@ namespace AutoCAD_CSharp_plug_in
             Y,
             NY
         }
+        [CommandMethod("TT")]
+        public void MatchText()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Database db = HostApplicationServices.WorkingDatabase;
+
+            string sourceText = "";
+            PromptEntityOptions promptEntityOptions = new PromptEntityOptions("\nSelect source text");
+            promptEntityOptions.AllowNone = true;
+            promptEntityOptions.AllowObjectOnLockedLayer = true;
+            promptEntityOptions.SetRejectMessage("\nSelect text");
+            promptEntityOptions.AddAllowedClass(typeof(MText), true);
+            PromptEntityResult promptEntityResult = ed.GetEntity(promptEntityOptions);
+
+            if (promptEntityResult.Status != PromptStatus.OK) return;
+            Transaction trans = db.TransactionManager.StartTransaction();
+            MText mText = trans.GetObject(promptEntityResult.ObjectId, OpenMode.ForRead) as MText;
+            sourceText = mText.Contents;
+            trans.Commit();
+
+            while (true)
+            {
+                promptEntityOptions.Message = "\nSelect destination text";
+                PromptEntityResult promptEntityResultDes = ed.GetEntity(promptEntityOptions);
+                if (promptEntityResultDes.Status != PromptStatus.OK) return;
+                Transaction transDes = db.TransactionManager.StartTransaction();
+                MText mTextDes = transDes.GetObject(promptEntityResultDes.ObjectId, OpenMode.ForWrite) as MText;
+                mTextDes.Contents = sourceText;
+                transDes.Commit();
+            }
+        }
+        [CommandMethod("EA")]
+        public void SwapText()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Database db = HostApplicationServices.WorkingDatabase;
+
+            string sourceText = "";
+            PromptEntityOptions promptEntityOptions = new PromptEntityOptions("\nSelect source text");
+            promptEntityOptions.AllowNone = true;
+            promptEntityOptions.AllowObjectOnLockedLayer = true;
+            promptEntityOptions.SetRejectMessage("\nSelect text");
+            promptEntityOptions.AddAllowedClass(typeof(MText), true);
+            PromptEntityResult promptEntityResult = ed.GetEntity(promptEntityOptions);
+
+            if (promptEntityResult.Status != PromptStatus.OK) return;
+            Transaction trans = db.TransactionManager.StartTransaction();
+            MText mText = trans.GetObject(promptEntityResult.ObjectId, OpenMode.ForWrite) as MText;
+            sourceText = mText.Contents;
+
+            promptEntityOptions.Message = "\nSelect destination text";
+            PromptEntityResult promptEntityResultDes = ed.GetEntity(promptEntityOptions);
+            if (promptEntityResultDes.Status != PromptStatus.OK) return;
+            MText mTextDes = trans.GetObject(promptEntityResultDes.ObjectId, OpenMode.ForWrite) as MText;
+            mText.Contents = mTextDes.Contents;
+            mTextDes.Contents = sourceText;
+            trans.Commit();
+        }
+        [CommandMethod("MD")]
+        public void CurrentDate()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Database db = HostApplicationServices.WorkingDatabase;
+            DateTime dateTime = DateTime.Now;
+           
+            while (true)
+            {
+                PromptEntityOptions promptEntityOptions = new PromptEntityOptions("\nSelect text");
+                promptEntityOptions.AllowNone = true;
+                promptEntityOptions.AllowObjectOnLockedLayer = true;
+                promptEntityOptions.SetRejectMessage("\nSelect a text");
+                promptEntityOptions.AddAllowedClass(typeof(MText), true);
+                promptEntityOptions.Keywords.Add("Datetime format");
+                PromptEntityResult promptEntityResult = ed.GetEntity(promptEntityOptions);
+                if (promptEntityResult.Status == PromptStatus.OK)
+                {
+                    string datetimeNow = dateTime.ToString(datetimeFormat);
+                    Transaction trans = db.TransactionManager.StartTransaction();
+                    MText mText = trans.GetObject(promptEntityResult.ObjectId, OpenMode.ForWrite) as MText;
+                    mText.Contents = datetimeNow;
+                    trans.Commit();
+                }
+                else if(promptEntityResult.Status == PromptStatus.Keyword)
+                {
+                    PromptKeywordOptions keywordPKO = new PromptKeywordOptions("Enter datetime format: ");
+                  
+                    keywordPKO.Keywords.Add("yyyyMMdd","1", "1 yyyyMMdd");
+                    keywordPKO.Keywords.Add("ddMMyyyy","2", "2 ddMMyyyy");
+                    keywordPKO.Keywords.Default = datetimeFormat;
+                    keywordPKO.AllowArbitraryInput = true;
+                    keywordPKO.AppendKeywordsToMessage = true;
+                    PromptResult getWhichEntityResult = ed.GetKeywords(keywordPKO);
+                    if (getWhichEntityResult.Status != PromptStatus.OK) continue;
+                    ed.WriteMessage("Datetime format is settled to "+getWhichEntityResult.StringResult);
+                    datetimeFormat = getWhichEntityResult.StringResult;
+                }
+                else
+                {
+                    return;
+                }
+              
+            }
+        }
+        static string datetimeFormat = "yyyyMMdd";
+        [CommandMethod("CX", CommandFlags.UsePickSet)]
+        public void CopyHorizontally()
+        {
+            CopyStraight("Horizontally");
+        }
+        [CommandMethod("CY", CommandFlags.UsePickSet)]
+        public void CopyVertically()
+        {
+            CopyStraight("Vertically");
+        }
+        public void CopyStraight(string Mode)
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Database db = HostApplicationServices.WorkingDatabase;
+            var _selAll = ed.SelectImplied();
+            SelectionSet selectionSet;
+            if (_selAll.Status == PromptStatus.OK)
+            {
+                selectionSet = _selAll.Value;
+            }
+            else
+            {
+                PromptSelectionOptions promptSelectionOptions = new PromptSelectionOptions();
+                promptSelectionOptions.MessageForAdding = "\nSelect Objects";
+                PromptSelectionResult promptSelectionResult = ed.GetSelection(promptSelectionOptions);
+                if (promptSelectionResult.Status != PromptStatus.OK) return;
+                selectionSet = promptSelectionResult.Value;
+            }
+            PromptPointOptions pointOption = new PromptPointOptions("\nSpecify base point");
+            pointOption.AllowArbitraryInput = false;
+            pointOption.AllowNone = true;
+
+            PromptPointResult basePointResult = ed.GetPoint(pointOption);
+            if (basePointResult.Status != PromptStatus.OK) return;
+
+            pointOption.BasePoint = basePointResult.Value;
+            pointOption.UseBasePoint = true;
+            pointOption.Message = "\nSpecify second point";
+
+            PromptPointResult secondPointResult = ed.GetPoint(pointOption);
+            if (secondPointResult.Status != PromptStatus.OK) return;
+
+            Point3d secondPoint = new Point3d();
+            if (Mode == "Horizontally")
+            {
+                secondPoint = new Point3d(secondPointResult.Value.X, basePointResult.Value.Y, secondPointResult.Value.Z);
+            }
+            else
+            {
+                secondPoint = new Point3d(basePointResult.Value.X, secondPointResult.Value.Y, secondPointResult.Value.Z);
+            }
+
+            Vector3d acVec3d = basePointResult.Value.GetVectorTo(secondPoint);
+            ObjectId blockId = db.CurrentSpaceId;
+            using (Transaction trans = db.TransactionManager.StartTransaction())
+            {
+                // BlockTableRecord currentSpace = trans.GetObject(blockId, OpenMode.ForWrite) as BlockTableRecord;
+                ObjectIdCollection ids = new ObjectIdCollection(selectionSet.GetObjectIds());
+                var idMap = new IdMapping(); ;
+                db.DeepCloneObjects(ids, db.CurrentSpaceId, idMap, false);
+                foreach (IdPair pair in idMap)
+                {
+                    if (pair.IsPrimary && pair.IsCloned)
+                    {
+
+                        Entity entity = trans.GetObject(pair.Value, OpenMode.ForWrite) as Entity;
+                        entity.TransformBy(Matrix3d.Displacement(acVec3d));
+                    }
+                }
+                trans.Commit();
+            }
+        }
     }
 }
 
